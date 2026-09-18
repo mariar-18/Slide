@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Slide</title>
+
+    <link
+        rel="stylesheet"
+        href="/style.css"
+    >
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Slide</h1>
+
+        <p class="subtitle">
+            Control your presentation with simple hand gestures.
+        </p>
+
+        <form
+            id="uploadForm"
+            action="/upload"
+            method="POST"
+            enctype="multipart/form-data"
+        >
+
+            <div
+                class="upload-box"
+                id="uploadBox"
+            >
+
+                <p>
+                    Upload your presentation
+                </p>
+
+                <label
+                    for="presentation"
+                    class="choose-btn"
+                >
+                    Choose PDF
+                </label>
+
+                <input
+                    type="file"
+                    id="presentation"
+                    name="presentation"
+                    accept="application/pdf"
+                >
+
+                <div id="fileName"></div>
+
+                <button
+                    type="submit"
+                    id="uploadBtn"
+                >
+                    Upload Presentation
+                </button>
+
+                <div id="status"></div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <script src="/index.js"></script>
+
+</body>
+
+</html>

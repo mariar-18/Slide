@@ -1,0 +1,1222 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+<link rel="stylesheet" href="/style.css">
+    <title>Slide | Presentation</title>
+
+   
+<script
+    src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js">
+</script>
+
+<script
+    src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js">
+</script>
+
+<script
+    src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js">
+</script>
+</head>
+
+
+<body class="presentation-page">
+
+    <div id="presentation">
+
+    <canvas id="pdfCanvas"></canvas>
+
+    <video id="camera" autoplay playsinline></video>
+        <canvas id="handCanvas"></canvas>
+        <div id="pointer"></div>
+        <div class="controls">
+
+    <button id="previousBtn">
+        Previous
+    </button>
+
+    <span id="slideNumber">
+        Slide 1
+    </span>
+
+    <button id="nextBtn">
+        Next
+    </button>
+
+    <button id="fullscreenBtn">
+        ⛶ Full Screen
+    </button>
+<button id="exitBtn">Exit Presentation</button>
+    <button id="startCameraBtn">
+        Start Camera
+    </button>
+
+    <button id="stopCameraBtn">
+        Stop Camera
+    </button>
+
+</div>
+
+    </div>
+
+
+    <script type="module">
+
+
+        /* =========================================
+           PDF.JS
+        ========================================= */
+
+        import * as pdfjsLib
+            from "/pdfjs/build/pdf.mjs";
+
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "/pdfjs/build/pdf.worker.mjs";
+
+
+        /* =========================================
+           GET PDF FILE
+        ========================================= */
+
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+        const file =
+            params.get("file");
+
+        if (!file) {
+
+            console.error(
+                "No PDF file specified."
+            );
+
+        }
+
+        const pdfUrl =
+            window.location.origin +
+            "/uploads/" +
+            file;
+
+        /* =========================================
+           CANVAS
+        ========================================= */
+
+        const canvas =
+            document.getElementById(
+                "pdfCanvas"
+            );
+
+        const context =
+            canvas.getContext(
+                "2d",
+                {
+                    alpha: false
+                }
+            );
+
+            
+        /* =========================================
+           VARIABLES
+        ========================================= */
+
+        let pdf = null;
+        let currentPage = 1;
+        let renderTask = null;
+        let resizeTimer = null;
+
+
+        /* =========================================
+           LOAD PDF
+        ========================================= */
+
+        async function loadPDF() {
+            try {
+
+                pdf =
+                    await pdfjsLib
+                        .getDocument({
+                            url: pdfUrl
+                        })
+                        .promise;
+
+
+                console.log(
+                    "PDF loaded"
+                );
+
+
+                console.log(
+                    "Pages:",
+                    pdf.numPages
+                );
+
+
+                await renderPage(
+                    currentPage
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "PDF loading error:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        /* =========================================
+           RENDER PAGE
+        ========================================= */
+
+        async function renderPage(
+            pageNumber
+        ) {
+
+            if (!pdf) {
+
+                return;
+
+            }
+
+
+            /* Cancel previous rendering */
+
+            if (renderTask) {
+
+                try {
+
+                    renderTask.cancel();
+
+                } catch (error) {
+
+                    // Ignore
+
+                }
+
+
+                renderTask = null;
+
+            }
+
+
+            try {
+
+                const page =
+                    await pdf.getPage(
+                        pageNumber
+                    );
+
+
+                /* PDF ROTATION */
+
+                const pdfRotation =
+                    page.rotate || 0;
+
+
+                const rotation =
+                    (360 - pdfRotation) % 360;
+
+
+                /* ORIGINAL PAGE SIZE */
+
+                const baseViewport =
+                    page.getViewport({
+                        scale: 1,
+                        rotation: rotation
+                    });
+
+
+                /* PRESENTATION AREA */
+
+                const presentation =
+                    document.getElementById(
+                        "presentation"
+                    );
+
+
+                const availableWidth =
+                    presentation.clientWidth *
+                    0.94;
+
+
+                const availableHeight =
+                    presentation.clientHeight *
+                    0.88;
+
+
+                /* CALCULATE DISPLAY SIZE */
+
+                const scaleX =
+                    availableWidth /
+                    baseViewport.width;
+
+
+                const scaleY =
+                    availableHeight /
+                    baseViewport.height;
+
+
+                const displayScale =
+                    Math.min(
+                        scaleX,
+                        scaleY
+                    );
+
+
+                /* HIGH RESOLUTION */
+
+                const pixelRatio = 3;
+
+
+                const renderViewport =
+                    page.getViewport({
+
+                        scale:
+                            displayScale *
+                            pixelRatio,
+
+                        rotation:
+                            rotation
+
+                    });
+
+
+                /* CANVAS INTERNAL RESOLUTION */
+
+                canvas.width =
+                    Math.floor(
+                        renderViewport.width
+                    );
+
+
+                canvas.height =
+                    Math.floor(
+                        renderViewport.height
+                    );
+
+
+                /* CANVAS DISPLAY SIZE */
+
+                const displayWidth =
+                    baseViewport.width *
+                    displayScale;
+
+
+                const displayHeight =
+                    baseViewport.height *
+                    displayScale;
+
+
+                canvas.style.width =
+                    `${displayWidth}px`;
+
+
+                canvas.style.height =
+                    `${displayHeight}px`;
+
+
+                /* RESET TRANSFORMATION */
+
+                context.setTransform(
+                    1,
+                    0,
+                    0,
+                    1,
+                    0,
+                    0
+                );
+
+
+                /* RENDER */
+
+                renderTask =
+                    page.render({
+
+                        canvasContext:
+                            context,
+
+                        viewport:
+                            renderViewport
+
+                    });
+
+
+                await renderTask.promise;
+
+
+                renderTask = null;
+
+
+                /* SLIDE NUMBER */
+
+                document.getElementById(
+                    "slideNumber"
+                ).textContent =
+                    `Slide ${pageNumber} / ${pdf.numPages}`;
+
+
+            } catch (error) {
+
+                if (
+                    error.name !==
+                    "RenderingCancelledException"
+                ) {
+
+                    console.error(
+                        "Rendering error:",
+                        error
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        /* =========================================
+           NEXT
+        ========================================= */
+
+       document.getElementById(
+    "nextBtn"
+).addEventListener(
+    "click",
+    async () => {
+
+        if (!pdf) {
+            return;
+        }
+
+        if (
+            currentPage <
+            pdf.numPages
+        ) {
+
+            currentPage++;
+
+            await renderPage(
+                currentPage
+            );
+
+        }
+
+    }
+);
+
+
+        /* =========================================
+           PREVIOUS
+        ========================================= */
+
+        document.getElementById(
+    "previousBtn"
+).addEventListener(
+    "click",
+    async () => {
+
+        if (!pdf) {
+            return;
+        }
+
+        if (currentPage > 1) {
+
+            currentPage--;
+
+            await renderPage(
+                currentPage
+            );
+
+        }
+
+    }
+);
+
+
+        /* =========================================
+           FULLSCREEN
+        ========================================= */
+
+        const fullscreenBtn =
+            document.getElementById(
+                "fullscreenBtn"
+            );
+const exitBtn =
+    document.getElementById("exitBtn");
+
+        fullscreenBtn.addEventListener(
+            "click",
+            async () => {
+                try {
+                    if (
+                        !document.fullscreenElement
+                    ) {
+
+                        await document
+                            .getElementById(
+                                "presentation"
+                            )
+                            .requestFullscreen();
+                    } else {
+
+                        await document
+                            .exitFullscreen();
+                    }
+
+                } catch (error) {
+
+                    console.error(
+                        "Fullscreen error:",
+                        error
+                    );
+                }
+            }
+        );
+        exitBtn.addEventListener(
+    "click",
+    () => {
+
+        // Stop MediaPipe camera loop
+        if (handCamera) {
+            handCamera.stop();
+            handCamera = null;
+        }
+
+        // Stop actual camera
+        if (cameraStream) {
+            cameraStream
+                .getTracks()
+                .forEach(track => {
+                    track.stop();
+                });
+
+            cameraStream = null;
+        }
+
+        // Disconnect camera
+        camera.pause();
+        camera.srcObject = null;
+        camera.removeAttribute("src");
+
+        // Hide camera
+        camera.style.display = "none";
+
+        // Hide pointer
+        document
+            .getElementById("pointer")
+            .style.display = "none";
+
+        // Clear hand landmarks
+        handContext.clearRect(
+            0,
+            0,
+            handCanvas.width,
+            handCanvas.height
+        );
+
+        // Exit fullscreen if active
+        if (document.fullscreenElement) {
+            document.exitFullscreen()
+                .catch(() => {});
+        }
+
+        // Go back to Ready page
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+        const file =
+            params.get("file");
+
+        const name =
+            params.get("name") ||
+            "Presentation";
+
+        window.location.replace(
+    "/ready.html?file=" +
+    encodeURIComponent(file) +
+    "&name=" +
+    encodeURIComponent(name)
+);
+    }
+);
+
+        /* =========================================
+           FULLSCREEN CHANGE
+        ========================================= */
+
+        document.addEventListener(
+            "fullscreenchange",
+            () => {
+
+                if (
+                    document.fullscreenElement
+                ) {
+
+                    fullscreenBtn.textContent =
+                        "⛶ Exit Full Screen";
+
+                } else {
+                    fullscreenBtn.textContent =
+                        "⛶ Full Screen";
+
+                }
+                scheduleRender();
+            }
+        );
+
+
+        /* =========================================
+           RESIZE
+        ========================================= */
+
+        function scheduleRender() {
+
+            clearTimeout(
+                resizeTimer
+            );
+
+
+            resizeTimer =
+                setTimeout(
+                    () => {
+                        if (pdf) {
+                            renderPage(
+                                currentPage
+                            );
+
+                        }
+
+                    },
+                    200
+                );
+        }
+
+        window.addEventListener(
+            "resize",
+            scheduleRender
+        );
+
+        /* =========================================
+           KEYBOARD
+        ========================================= */
+
+        document.addEventListener(
+            "keydown",
+            (event) => {
+                if (
+                    event.key ===
+                    "ArrowRight"
+                ) {
+
+                    if (
+                        pdf &&
+                        currentPage <
+                        pdf.numPages
+                    ) {
+
+                        currentPage++;
+                        renderPage(
+                            currentPage
+                        );
+                    }
+                }
+                if (
+                    event.key ===
+                    "ArrowLeft"
+                ) {
+
+                    if (
+                        pdf &&
+                        currentPage > 1
+                    ) {
+
+                        currentPage--;
+                        renderPage(
+                            currentPage
+                        );
+                    }
+                }
+                if (
+                    event.key.toLowerCase() ===
+                    "f"
+                ) {
+
+                    fullscreenBtn.click();
+
+                }
+
+            }
+        );
+
+        /* =========================================
+           START
+        ========================================= */
+
+        loadPDF();
+/* =========================================
+   CAMERA
+========================================= */
+
+const camera =
+    document.getElementById("camera");
+
+const startCameraBtn =
+    document.getElementById("startCameraBtn");
+
+const stopCameraBtn =
+    document.getElementById("stopCameraBtn");
+
+let cameraStream = null;
+let handCamera = null;
+let previousHandX = null;
+let lastSwipeTime = 0;
+const swipeThreshold = 0.08;
+const swipeCooldown = 800;
+let pointerEnabled = false;
+let palmWasDetected = false;
+let fistStartTime = null;
+const fistHoldTime = 700;
+let exiting = false;
+startCameraBtn.addEventListener(
+    "click",
+    async () => {
+
+        try {
+
+            cameraStream =
+                await navigator.mediaDevices
+                    .getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+
+            camera.srcObject =
+                cameraStream;
+handCamera =
+    new Camera(camera, {
+
+        onFrame: async () => {
+
+            if (cameraStream) {
+
+                await hands.send({
+                    image: camera
+                });
+
+            }
+
+        },
+
+        width: 480,
+
+        height: 360
+
+    });
+
+handCamera.start();
+            camera.style.display =
+                "block";
+
+            console.log(
+                "Camera started"
+            );
+
+        } catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Could not access the camera."
+            );
+
+        }
+
+    }
+);
+
+
+stopCameraBtn.addEventListener(
+    "click",
+    () => {
+
+        /* Stop MediaPipe camera loop */
+
+        if (handCamera) {
+
+            handCamera.stop();
+
+            handCamera = null;
+
+        }
+
+
+        /* Stop the actual camera stream */
+
+        if (cameraStream) {
+
+            cameraStream
+                .getTracks()
+                .forEach(track => {
+
+                    track.stop();
+
+                });
+
+            cameraStream = null;
+
+        }
+
+
+        /* Disconnect video from camera */
+
+        camera.pause();
+
+        camera.srcObject = null;
+
+        camera.removeAttribute("src");
+
+
+        /* Hide camera */
+
+        camera.style.display =
+            "none";
+
+
+        /* Clear landmarks */
+
+        handContext.clearRect(
+            0,
+            0,
+            handCanvas.width,
+            handCanvas.height
+        );
+
+
+        console.log(
+            "Camera completely stopped"
+        );
+
+    }
+);
+/* =========================================
+   HAND DETECTION
+========================================= */
+
+const handCanvas =
+    document.getElementById("handCanvas");
+
+const handContext =
+    handCanvas.getContext("2d");
+
+
+const hands = new Hands({
+    locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    }
+});
+
+
+hands.setOptions({
+
+    maxNumHands: 1,
+
+    modelComplexity: 0,
+
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+
+});
+/* =========================================
+   FINGER DETECTION
+========================================= */
+
+function getFingerStates(landmarks) {
+
+    const fingers = {
+        thumb: false,
+        index: false,
+        middle: false,
+        ring: false,
+        pinky: false
+    };
+
+    // Index finger
+    fingers.index =
+        landmarks[8].y < landmarks[6].y;
+
+    // Middle finger
+    fingers.middle =
+        landmarks[12].y < landmarks[10].y;
+
+    // Ring finger
+    fingers.ring =
+        landmarks[16].y < landmarks[14].y;
+
+    // Pinky
+    fingers.pinky =
+        landmarks[20].y < landmarks[18].y;
+
+    // Thumb detection
+    const thumbTip = landmarks[4];
+    const thumbBase = landmarks[2];
+
+    const thumbDistance =
+        Math.sqrt(
+            Math.pow(
+                thumbTip.x - thumbBase.x,
+                2
+            ) +
+            Math.pow(
+                thumbTip.y - thumbBase.y,
+                2
+            )
+        );
+
+    fingers.thumb =
+        thumbDistance > 0.12;
+
+    return fingers;
+}
+
+
+// OPEN PALM
+function isOpenPalm(fingers) {
+
+    return (
+        fingers.index &&
+        fingers.middle &&
+        fingers.ring &&
+        fingers.pinky
+    );
+}
+
+
+// FIST
+function isFist(fingers) {
+
+    return (
+        !fingers.index &&
+        !fingers.middle &&
+        !fingers.ring &&
+        !fingers.pinky
+    );
+}
+
+
+// SWIPE
+function detectSwipe(landmarks) {
+
+    const currentX = landmarks[9].x;
+    const currentTime = Date.now();
+
+    if (previousHandX === null) {
+        previousHandX = currentX;
+        return;
+    }
+
+    const movement =
+        currentX - previousHandX;
+
+    previousHandX = currentX;
+
+    if (
+        currentTime - lastSwipeTime <
+        swipeCooldown
+    ) {
+        return;
+    }
+
+    if (movement > swipeThreshold) {
+
+        if (
+            pdf &&
+            currentPage < pdf.numPages
+        ) {
+            currentPage++;
+            renderPage(currentPage);
+
+            console.log(
+                "Swipe right → Next slide"
+            );
+        }
+
+        lastSwipeTime = currentTime;
+    }
+
+    else if (movement < -swipeThreshold) {
+
+        if (
+            pdf &&
+            currentPage > 1
+        ) {
+            currentPage--;
+            renderPage(currentPage);
+
+            console.log(
+                "Swipe left → Previous slide"
+            );
+        }
+
+        lastSwipeTime = currentTime;
+    }
+}
+
+
+// HAND RESULTS
+hands.onResults((results) => {
+
+    handCanvas.width = 640;
+    handCanvas.height = 480;
+
+    handContext.clearRect(
+        0,
+        0,
+        handCanvas.width,
+        handCanvas.height
+    );
+
+    if (
+        results.multiHandLandmarks &&
+        results.multiHandLandmarks.length > 0
+    ) {
+
+        const landmarks =
+            results.multiHandLandmarks[0];
+
+        // FINGER DETECTION
+        const fingers =
+            getFingerStates(landmarks);
+
+        console.log(fingers);
+
+        const currentTime = Date.now();
+
+
+        // -------------------------
+        // OPEN PALM → POINTER TOGGLE
+        // -------------------------
+
+        const palmDetected = isOpenPalm(fingers);
+
+if (palmDetected && !palmWasDetected) {
+    pointerEnabled = !pointerEnabled;
+
+    console.log(
+        "Pointer:",
+        pointerEnabled ? "ON" : "OFF"
+    );
+}
+
+palmWasDetected = palmDetected;
+
+
+        // -------------------------
+        // FIST → EXIT
+        // -------------------------
+
+        if (
+            isFist(fingers) &&
+            !exiting
+        ) {
+
+            if (fistStartTime === null) {
+
+                fistStartTime =
+                    Date.now();
+            }
+
+            const fistDuration =
+                Date.now() -
+                fistStartTime;
+
+            // Hold fist for 700ms
+            if (
+                fistDuration >=
+                fistHoldTime
+            ) {
+
+                exiting = true;
+
+                console.log(
+                    "FIST HELD → EXITING"
+                );
+
+
+                // STOP MEDIAPIPE
+                if (handCamera) {
+
+                    handCamera.stop();
+                    handCamera = null;
+                }
+
+
+                // STOP ACTUAL CAMERA
+                if (cameraStream) {
+
+                    cameraStream
+                        .getTracks()
+                        .forEach(track => {
+                            track.stop();
+                        });
+
+                    cameraStream = null;
+                }
+
+
+                // DISCONNECT CAMERA
+                camera.pause();
+                camera.srcObject = null;
+                camera.removeAttribute("src");
+
+
+                // HIDE CAMERA
+                camera.style.display =
+                    "none";
+
+
+                // HIDE POINTER
+                document
+                    .getElementById("pointer")
+                    .style.display = "none";
+
+
+                // CLEAR HAND LANDMARKS
+                handContext.clearRect(
+                    0,
+                    0,
+                    handCanvas.width,
+                    handCanvas.height
+                );
+
+
+                // GO BACK TO READY PAGE
+                const params =
+                    new URLSearchParams(
+                        window.location.search
+                    );
+
+                const file =
+                    params.get("file");
+
+                const name =
+                    params.get("name") ||
+                    "Presentation";
+
+                window.location.replace(
+    "/ready.html?file=" +
+    encodeURIComponent(file) +
+    "&name=" +
+    encodeURIComponent(name)
+);
+            }
+
+        } else {
+
+            fistStartTime = null;
+        }
+
+
+        // -------------------------
+        // SWIPE
+        // -------------------------
+
+        detectSwipe(landmarks);
+
+
+        // -------------------------
+        // POINTER
+        // -------------------------
+
+        const pointer =
+            document.getElementById(
+                "pointer"
+            );
+
+        if (
+            pointerEnabled &&
+            fingers.index &&
+            !fingers.middle &&
+            !fingers.ring &&
+            !fingers.pinky
+        ) {
+
+            const indexTip =
+    landmarks[8];
+
+/* Get actual presentation position and size */
+const presentation =
+    document.getElementById("presentation");
+
+const rect =
+    presentation.getBoundingClientRect();
+
+/* Mirror X */
+const x =
+    rect.left +
+    (1 - indexTip.x) *
+    rect.width;
+
+const y =
+    rect.top +
+    indexTip.y *
+    rect.height;
+
+pointer.style.left =
+    `${x - 9}px`;
+
+pointer.style.top =
+    `${y - 9}px`;
+
+            pointer.style.display =
+                "block";
+
+        } else {
+
+            pointer.style.display =
+                "none";
+        }
+
+
+        // -------------------------
+        // DRAW HAND LANDMARKS
+        // -------------------------
+
+        drawConnectors(
+            handContext,
+            landmarks,
+            HAND_CONNECTIONS
+        );
+
+        drawLandmarks(
+            handContext,
+            landmarks
+        );
+
+        console.log(
+            "Hand detected"
+        );
+    }
+});
+    </script>
+
+</body>
+
+</html>
+

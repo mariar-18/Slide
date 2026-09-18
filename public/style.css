@@ -1,0 +1,274 @@
+/* =========================
+   INDEX PAGE
+========================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    width: 90%;
+    max-width: 700px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #666;
+    margin-bottom: 35px;
+}
+
+.upload-box {
+    background: white;
+    border: 2px dashed #aaa;
+    border-radius: 16px;
+    padding: 50px 30px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.upload-box:hover {
+    border-color: #333;
+    background: #fafafa;
+}
+
+.upload-box p {
+    margin-bottom: 15px;
+    color: #555;
+}
+
+.choose-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background: #111;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+input {
+    display: none;
+}
+
+#fileName {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #555;
+}
+
+#uploadBtn {
+    display: none;
+    margin-top: 20px;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    background: #111;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+#status {
+    margin-top: 15px;
+    color: #555;
+}
+
+
+/* =========================
+   READY PAGE
+========================= */
+
+.ready-page {
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.ready-page .container {
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    background: white;
+    padding: 50px 35px;
+    border-radius: 20px;
+}
+
+.ready-page .icon {
+    font-size: 55px;
+    margin-bottom: 20px;
+}
+
+.ready-page h1 {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.ready-page .message {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.ready-page #fileName {
+    font-weight: bold;
+    margin-bottom: 30px;
+    word-break: break-word;
+}
+
+.ready-page .start-btn {
+    display: inline-block;
+    padding: 13px 28px;
+    background: #111;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    margin: 5px;
+}
+
+.ready-page .upload-btn {
+    display: inline-block;
+    padding: 13px 28px;
+    background: #eee;
+    color: #111;
+    text-decoration: none;
+    border-radius: 8px;
+    margin: 5px;
+}
+
+/* =========================
+   PRESENTATION PAGE
+========================= */
+
+.presentation-page {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+.presentation-page * {
+    box-sizing: border-box;
+}
+
+.presentation-page #presentation {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #111;
+    position: relative;
+    overflow: hidden;
+}
+
+.presentation-page #pdfCanvas {
+    display: block;
+    background: white;
+    box-shadow:
+        0 0 20px
+        rgba(0, 0, 0, 0.5);
+}
+
+.presentation-page .controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.75);
+    padding: 10px 18px;
+    border-radius: 10px;
+    z-index: 10;
+}
+
+.presentation-page button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.presentation-page button:hover {
+    opacity: 0.85;
+}
+
+.presentation-page #fullscreenBtn {
+    background: #444;
+    color: white;
+}
+
+.presentation-page #slideNumber {
+    min-width: 100px;
+    text-align: center;
+}
+
+.presentation-page #camera {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 220px;
+    height: 165px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: none;
+    z-index: 20;
+    transform: scaleX(-1);
+}
+
+.presentation-page #handCanvas {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 220px;
+    height: 165px;
+    border-radius: 12px;
+    z-index: 21;
+    pointer-events: none;
+    transform: scaleX(-1);
+}
+
+.presentation-page #pointer {
+    position: fixed;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid black;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+    display: none;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* =========================
+   CAMERA TEST PAGE
+========================= */
+
+.camera-page {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
